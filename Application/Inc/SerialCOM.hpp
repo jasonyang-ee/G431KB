@@ -53,8 +53,9 @@ class SerialCOM {
     bool sendOut();
 
     // Tx Rx Memory for DMA to fetch and push
-    uint8_t m_tx_data[UART_BUFFER];  // UART_BUFFER may be re-defined in main.h
-    uint8_t m_rx_data[UART_BUFFER];
+	// rewrite to use std::array
+	std::array<uint8_t, UART_BUFFER> m_tx_data; // UART_BUFFER may be re-defined in main.h
+	std::array<uint8_t, UART_BUFFER> m_rx_data;
 
     // Port
     UART_HandleTypeDef *m_port;
