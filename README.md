@@ -24,7 +24,7 @@ More Docker Details: https://github.com/jasonyang-ee/STM32-Dockerfile
 
 - Docker Build
 ```
-docker run -rm -v {Your_Local_Full_Path}:/home jasonyangee/stm32-builder:ubuntu-latest https://github.com/jasonyang-ee/STM32G431KB
+docker run -rm -v {Your_Local_Full_Path}:/home jasonyangee/stm32-builder:ubuntu-latest -r https://github.com/jasonyang-ee/STM32G431KB
 ```
 > Visit Here for More Details: https://github.com/jasonyang-ee/STM32-Dockerfile
 ![Run](docs_src/page/img/run.gif)
