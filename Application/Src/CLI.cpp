@@ -144,12 +144,14 @@ int32_t CLI::cmd_dac(int32_t argc, char** argv) {
     } else if (argc == 2) {
         if (!strcmp(argv[1], "help")) {
             serialCOM.sendString(help_text);
-        } else if (!strcmp(argv[1], "on")) {
-            dac.on();
+        // } else if (!strcmp(argv[1], "on")) {
+        //     dac.on();
         } else if (!strcmp(argv[1], "off")) {
             dac.off();
-        } else if (!strcmp(argv[1], "breath")) {
-            dac.breath();
+        // } else if (!strcmp(argv[1], "breath")) {
+        //     dac.breath();
+        } else if (!strcmp(argv[1], "sine")) {
+            dac.on();
         } else {
             serialCOM.sendString("Unknown Command\n");
         }

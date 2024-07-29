@@ -2,6 +2,8 @@
 #define APPLICATION_INC_DAC
 
 #include "main.h"
+#include "array"
+#include <cmath>
 
 class CustomDAC {
    public:
@@ -16,6 +18,7 @@ class CustomDAC {
         s_off,
         s_on,
 		s_breath,
+		s_sine,
     } m_state;
 
     void setLevel(double);
@@ -28,16 +31,31 @@ class CustomDAC {
     void on();
     void off();
 	void breath();
+	void sine();
+	void generateSineWave(double, double, double);
 
 	void schedule();
+
+
+	std::array<double, 1000> sineWaveArray;
+
+
 
    private:
     void applyLevel();
 	void zeroLevel();
+	void nextLevel();
 	void setState(CustomDAC::State);
 
     double m_level{0.0};
     double m_vref{3.3};
+
+
+	double m_amplitude{1.0}; // Amplitude of the sine wave
+	double m_frequency{1.0}; // Frequency of the sine wave
+	double m_samplingRate{1000.0}; // Sampling rate of the sine wave
+
+	
 
 	uint32_t m_breeath_period{325};
 

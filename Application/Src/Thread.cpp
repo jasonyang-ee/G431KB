@@ -125,7 +125,8 @@ void Thread::idling_start() { serialCOM.sendString("ideling start function calle
 
 void Thread::dac_start() {
     serialCOM.sendString("dac start function called\n");
-    dac.breath();
+    serialCOM.sendNumber(dac.sineWaveArray);
+	dac.sine();
 }
 void Thread::dac_shutdown() {
     serialCOM.sendString("dac shutdown function called\n");
