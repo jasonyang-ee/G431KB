@@ -36,6 +36,19 @@ void CustomDAC::off() { setState(CustomDAC::State::s_off); }
 
 void CustomDAC::breath() { setState(CustomDAC::State::s_breath); }
 
+void CustomDAC::sine() { setState(CustomDAC::State::s_sine); }
+
+void CustomDAC::generateSineWave(double amplitude, double frequency, double samplingRate) {
+	m_amplitude = amplitude;
+	m_frequency = frequency;
+	m_samplingRate = samplingRate;
+	for (int i = 0; i < 1000; i++) {
+		double time = i / samplingRate;
+		sineWaveArray[i] = amplitude * std::sin(2 * M_PI * frequency * time);
+	}
+}
+
+
 void CustomDAC::schedule() {
     if (m_state == CustomDAC::State::s_breath) {
         m_level = abs(sin(HAL_GetTick() % m_breeath_period)) * 3.3;
@@ -66,6 +79,8 @@ void CustomDAC::setState(CustomDAC::State cmd) {
             break;
         case CustomDAC::State::s_breath:
 			zeroLevel();
+            break;
+        case CustomDAC::State::s_sine:
             break;
     }
     m_state = cmd;

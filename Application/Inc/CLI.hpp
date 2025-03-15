@@ -1,29 +1,66 @@
-#ifndef CORE_INC_CLI
-#define CORE_INC_CLI
+#ifndef APPLICATION_INC_ACLI
+#define APPLICATION_INC_ACLI
 
-#include "lwshell.h"
-#include "string.h"
-#include "ctype.h"
+#include <cstdint>
+#include <functional>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 class CLI {
+   private:
+    void func_help(int32_t argc, char** argv);
+    void func_led(int32_t argc, char** argv);
+    void func_flash(int32_t argc, char** argv);
+    void func_idle(int32_t argc, char** argv);
+    void func_show(int32_t argc, char** argv);
+
+   private:
+    void setCommands();
+    size_t rx_size{};
+    std::string rx_cache{};
+    std::unordered_map<std::string, std::function<void(int32_t, char**)>> cmd_map{};
+
    public:
     CLI();
     virtual ~CLI();
-    void init();
-	bool parse();
-    void setSize(uint16_t);
-    static void output(const char*, lwshell*);
 
-    static int32_t cmd_help(int32_t, char**);
-    static int32_t cmd_led(int32_t, char**);
-    static int32_t cmd_flash(int32_t, char**);
-	static int32_t cmd_idle(int32_t, char**);
-    static int32_t cmd_dac(int32_t, char**);
-    static int32_t cmd_show(int32_t, char**);
-	static int32_t cmd_date(int32_t, char**);
+    void saveCache(std::string rx) { rx_cache = rx; }
 
-	private:
-	uint16_t m_cmd_size;
+    bool parse() {
+        // tokenizing rx_cache by space
+        std::vector<std::string> tokens;
+        std::string token;
+        for (char c : rx_cache) {
+            if (c == ' ' || c == '\n' || c == '\r') {
+                if (!token.empty()) {
+                    tokens.push_back(token);
+                    token.clear();
+                }
+            } else {
+                token += c;
+            }
+        }
+
+        // parse command and arguments
+        if (!tokens.empty()) {
+            std::string command = tokens[0];
+            // using first token as command
+            auto arguments = cmd_map.find(command);
+            if (arguments != cmd_map.end()) {
+                int32_t argc = tokens.size();
+                std::vector<char*> argv;
+                for (auto& t : tokens) {
+                    argv.push_back(&t[0]);
+                }
+                // Invoke command functions by first token
+                arguments->second(argc, argv.data());
+            } else {
+                return false;
+            }
+        }
+        return true;
+    }
 };
 
-#endif    /* CORE_INC_CLI */
+#endif /* APPLICATION_INC_ACLI */
