@@ -115,9 +115,7 @@ void Thread::serial_send() {
 void Thread::parse() {
     while (1) {
         ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-        if (cli.parse()) {
-			serialCOM.sendString("Command parsed\n");
-		} else {
+        if (!cli.parse()) {
 			serialCOM.sendString("Command not found\n");
 		}
     }

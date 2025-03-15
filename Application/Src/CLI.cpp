@@ -91,7 +91,7 @@ void CLI::func_flash(int32_t argc, char** argv) {
     for (int i = 1; i < argc; i++) {
         std::string arg = argv[i];
 
-        if (arg == "help") {
+        if (arg == "help" || arg == "?" || arg == "-h") {
             serialCOM.sendString(help_text);
         } else if (arg == "save") {
             flash.Save();
@@ -107,6 +107,7 @@ void CLI::func_show(int32_t argc, char** argv) {
         "  Stream Telemetry\n"
         "  one \tShow Telemetry Once\n\n";
 
+    // No Sub Command
     if (argc == 1) {
         stream_sm.process_event(toggle{});
     }
@@ -115,7 +116,7 @@ void CLI::func_show(int32_t argc, char** argv) {
     for (int i = 1; i < argc; i++) {
         std::string arg = argv[i];
 
-        if (arg == "help") {
+        if (arg == "help" || arg == "?" || arg == "-h") {
             serialCOM.sendString(help_text);
         } else if (arg == "one") {
             stream_sm.process_event(oneshot{});
