@@ -70,12 +70,6 @@ void CLI::func_led(int32_t argc, char** argv) {
             led_user.rapid();
         } else if (arg == "breath") {
             led_user.breath();
-        } else if (arg == "scale") {
-            led_user.setScale(atof(argv[i + 1]));
-        } else if (arg == "level") {
-            led_user.setLevel(atof(argv[i + 1]));
-        } else if (arg == "add") {
-            led_user.addLevel(atof(argv[i + 1]));
         }
     }
 }

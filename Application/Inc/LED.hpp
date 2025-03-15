@@ -1,6 +1,9 @@
 #ifndef APPLICATION_INC_LED
 #define APPLICATION_INC_LED
 
+#include <functional>
+#include <unordered_map>
+
 #include "main.h"
 
 /**
@@ -9,31 +12,12 @@
  * @param freq(opt) Set scheduler running frequency in Hz.
  * @warning setPort(&htimX->CCRX) is required to run.
  */
+
 class LED {
    public:
-    LED();
-    LED(int32_t);
     LED(int32_t, int32_t);
     virtual ~LED();
-    void setPort(__IO uint32_t *);
-
-    // Unscoped to allow config saving to flash
-    enum State {
-        s_off,
-        s_on,
-        s_breath,
-        s_blink,
-        s_rapid,
-    } state;
-
-    // Value Configuration
-    void setLevel(int32_t);
-    void addLevel(int32_t);
-    void setScale(int32_t);
-    int32_t getLevel();
-    int32_t getScale();
-    void setState(uint8_t);
-    uint8_t getState();
+    void setPort(__IO uint32_t*);
 
     void on();
     void off();
@@ -41,27 +25,39 @@ class LED {
     void breath();
     void blink();
     void rapid();
-    void scheduler();
+	void scheduler();
+
+	uint16_t getLevel() { return breath_percent; }
 
    private:
-    void applyCCR();
-    void zeroCCR();
-    void setState(LED::State);
+    enum class State { ON, OFF, IDLE, BREATH, BLINK, RAPID };
+    State state_steady{State::OFF};
+    State state_dynamic{State::BREATH};
+    void actionOn();
+    void actionOff();
+    void actionBreath();
+    void actionBlink();
+    void actionRapid();
 
-    // Setting
-    __IO uint32_t *m_CCR;  // Ex: htim3.Instance->CCR2 for Timer3 Channel2
-	int32_t m_CCR_ratio{1};
-    int32_t m_level{100};  // light level
-    int32_t m_scale{1};    // light scale
-    uint16_t m_ext_freq{0};
-    uint16_t m_schedule{0};
+    void setSteadyState(State newState, void (LED::*f)());
+    void setDynamicState(State newState);
+    void setDynamicState(State newState, void (LED::*f)());
 
-    uint16_t m_blink_timer{0};
-    uint16_t m_rapid_timer{0};
+   private:
+    __IO uint32_t* port;  // Ex: htim3.Instance->CCR2 for Timer3 Channel2
+    int32_t ratio{1};
+    int32_t scale{1};       // light scale
+    uint16_t frequency{0};  // thread scheduler frequency
 
-    uint8_t m_breath_itr{0};
-    uint16_t m_breath[25] = {0,  5,  10, 17, 29, 43, 60, 69, 77, 83, 91, 97, 99,
-                             99, 84, 70, 55, 45, 37, 29, 23, 19, 16, 10, 0};
-};
+    int16_t on_percent{100};
+    bool breath_direction{true};
+    int16_t breath_percent{0};
+    uint16_t blink_timer{0};
+    uint16_t rapid_timer{0};
 
-#endif    /* APPLICATION_INC_LED */
+    std::unordered_map<State, std::function<void()>> steadyState;
+    std::unordered_map<State, std::function<void()>> dynamicState;
+
+};  // class LED
+
+#endif /* APPLICATION_INC_LED */
