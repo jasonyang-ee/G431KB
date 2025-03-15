@@ -1,178 +1,83 @@
 #include "LED.hpp"
 
-LED::LED() {}
+LED::LED(int32_t period, int32_t freq) : ratio(period / 100), frequency(freq) {
+    // Event Handlers
+    transitions[State::OFF] = {{Event::TOGGLE, State::ON}};
+    transitions[State::ON] = {{Event::TOGGLE, State::OFF}};
+    transitions[State::BREATH] = {{Event::SCHEDULE, State::BREATH}, {Event::TOGGLE, State::OFF}};
+    transitions[State::BLINK] = {{Event::SCHEDULE, State::BLINK}, {Event::TOGGLE, State::OFF}};
+    transitions[State::RAPID] = {{Event::SCHEDULE, State::RAPID}, {Event::TOGGLE, State::OFF}};
 
-LED::LED(int32_t pwm_period) { m_CCR_ratio = pwm_period / 100; }
+    // Action When Entering State
+    actions[State::ON] = [this]() { actionOn(); };
+    actions[State::OFF] = [this]() { actionOff(); };
+    actions[State::BREATH] = [this]() { actionBreath(); };
+    actions[State::BLINK] = [this]() { actionToggle(); };
+    actions[State::RAPID] = [this]() { actionToggle(); };
 
-LED::LED(int32_t pwm_period, int32_t freq) {
-    m_CCR_ratio = pwm_period / 100;
-    m_ext_freq = freq;
+	// Guard Before Transition
+    guards[State::BLINK] = {{Event::SCHEDULE, [this]() { return guardBlink(); }}};
+    guards[State::RAPID] = {{Event::SCHEDULE, [this]() { return guardRapid(); }}};
 }
 
-LED::~LED() { zeroCCR(); }
+LED::~LED() {}
 
-/**
- * @brief Initialize with Timer PWM CCR register address reference.
- * @param port Timer PWM CCR register.
- * @note Must use after MX_TIMx_Init().
- * @note Timer_1 Channel_3: setPort(&htim1.Instance->CCR3)
- */
-void LED::setPort(__IO uint32_t *CCR) { m_CCR = CCR; }
+// Public Methods
+void LED::setPort(__IO uint32_t *CCR) { port = CCR; }
+void LED::on() { setState(State::ON); }
+void LED::off() { setState(State::OFF); }
+void LED::toggle() { triggerEvent(Event::TOGGLE); }
+void LED::scheduler() { triggerEvent(Event::SCHEDULE); }
+void LED::breath() { setState(State::BREATH); }
+void LED::blink() { setState(State::BLINK); }
+void LED::rapid() { setState(State::RAPID); }
 
-/**
- * @brief Turn on LED
- *
- */
-void LED::on() { setState(LED::State::s_on); }
-
-/**
- * @brief Turn off LED
- *
- */
-void LED::off() { setState(LED::State::s_off); }
-
-/**
- * @brief Toggle LED on/off state
- *
- */
-void LED::toggle() {
-    if (*m_CCR > 0)
-        zeroCCR();
+// Define Actions
+void LED::actionOn() { *port = on_percent / scale * ratio; }
+void LED::actionOff() { *port = 0; }
+void LED::actionToggle() {
+    if (*port == 0)
+        *port = on_percent / scale * ratio;
     else
-        applyCCR();
+        *port = 0;
 }
-
-/**
- * @brief Activate breathing effect mode
- *
- */
-void LED::breath() { setState(LED::State::s_breath); }
-
-/**
- * @brief Activate blinking effect mode
- *
- */
-void LED::blink() { setState(LED::State::s_blink); }
-
-/**
- * @brief Activate rapid blinking effect mode
- *
- */
-void LED::rapid() { setState(LED::State::s_rapid); }
-
-/**
- * @brief Set LED state for flash config loading
- *
- * @param cmd - 0=off, 1=on, 2=breath, 3=blink, 4=rapid
- */
-void LED::setState(uint8_t cmd) { setState(static_cast<LED::State>(cmd)); }
-
-/**
- * @brief Return current LED state for flash config saving
- *
- * @return uint8_t - 0=off, 1=on, 2=breath, 3=blink, 4=rapid
- */
-uint8_t LED::getState() { return static_cast<uint8_t>(state); }
-
-/**
- * @brief Set brightness dimming scale.
- *
- * @param value dimming division value. CANNOT be 0.
- */
-void LED::setScale(int32_t value) {
-    if (value == 0) value = 1;  // Prevent dividing 0
-    m_scale = value;
-    applyCCR();
-}
-
-/**
- * @brief Set brightness level %.
- *
- * @param value - value from 0 to 100
- */
-void LED::setLevel(int32_t value) {
-    m_level = value;
-    applyCCR();
-}
-
-int32_t LED::getScale() { return m_scale; }
-
-int32_t LED::getLevel() { return m_level; }
-
-/**
- * @brief Increase or Decrease current level %
- *
- * @param value supports both positive and negative int32_t
- */
-void LED::addLevel(int32_t value) {
-    m_level += value;
-    if (m_level > 100) m_level = 100;
-    if (m_level < 0) m_level = 0;
-    applyCCR();
-}
-
-/**
- * @brief Use in timer interrupt to allow active mode, breath, blink, etc..
- *
- * @note Timer interrupt frequency is set during object initializaiton.
- */
-void LED::scheduler() {
-    // Supporting both thread or timer interrupt active mode schedule for
-    // consistant 20Hz
-    if (m_ext_freq != 0) ++m_schedule %= (m_ext_freq / 20);
-
-    // Active mode schedule logic
-    if (m_schedule == 0) {
-        if (state == LED::State::s_breath) {
-            if (++m_breath_itr < 25)
-                *m_CCR = m_breath[m_breath_itr] / m_scale * m_CCR_ratio;
-            else
-                m_breath_itr = 0;
-        }
-
-        // Slow Blinking LED Logic
-        else if (state == LED::State::s_blink) {
-            if (m_blink_timer > 5) {
-                toggle();
-                m_blink_timer = 0;
-            } else
-                m_blink_timer++;
-        }
-
-        // Fast Blinking LED Logic
-        else if (state == LED::State::s_rapid) {
-            if (m_rapid_timer > 1) {
-                toggle();
-                m_rapid_timer = 0;
-            } else
-                m_rapid_timer++;
+void LED::actionBreath() {
+    if (breath_percent < 40 && breath_direction) {
+        breath_percent += 3;
+    }
+    if (breath_percent >= 40 && breath_direction) {
+        breath_percent += 4;
+    }
+    if (breath_percent >= 100 && breath_direction) {
+        breath_direction = false;
+    }
+    if (breath_percent >= 60 && !breath_direction) {
+        breath_percent -= 8;
+    }
+    if (breath_percent < 60 && !breath_direction) {
+        breath_percent -= 5;
+        if (breath_percent < 0) {
+            breath_percent = 0;
         }
     }
+    if (breath_percent <= 0 && !breath_direction) {
+        breath_direction = true;
+    }
+    *port = breath_percent / scale * ratio;
 }
 
-// Private Functions
-
-void LED::applyCCR() { *m_CCR = static_cast<uint32_t>(m_level / m_scale * m_CCR_ratio); }
-
-void LED::zeroCCR() { *m_CCR = 0; }
-
-void LED::setState(LED::State cmd) {
-    switch (cmd) {
-        case LED::State::s_off:
-            zeroCCR();
-            break;
-        case LED::State::s_on:
-            applyCCR();
-            break;
-        case LED::State::s_breath:
-            zeroCCR();
-            break;
-        case LED::State::s_blink:
-            zeroCCR();
-            break;
-        case LED::State::s_rapid:
-            zeroCCR();
-            break;
+// Define Guards
+bool LED::guardBlink() {
+    if (blink_timer++ > 5) {
+        blink_timer = 0;
+        return true;
     }
-    state = cmd;
+    return false;
+}
+bool LED::guardRapid() {
+    if (rapid_timer++ > 1) {
+        rapid_timer = 0;
+        return true;
+    }
+    return false;
 }

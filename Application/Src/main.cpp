@@ -6,7 +6,7 @@
 // Instances Objects
 CLI cli{};
 Thread thread{};
-LED led_user{1000};
+LED led_user{1000, 20};
 SerialCOM serialCOM{};
 Flash flash{};
 CustomDAC dac{};
