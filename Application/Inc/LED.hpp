@@ -8,53 +8,54 @@
 
 /**
  * @brief Construct a new LED::led object
- * @param pwm_period(opt) Set PWM reload period.
- * @param freq(opt) Set scheduler running frequency in Hz.
+ * @param period Set PWM reload period.
+ * @param frequency Set scheduler running frequency in Hz.
  * @warning setPort(&htimX->CCRX) is required to run.
  */
 
 class LED {
    public:
-    LED(int32_t, int32_t);
+    LED(uint16_t period, uint16_t frequency);
     virtual ~LED();
-    void setPort(__IO uint32_t*);
 
+    // Public Methods
+    void setPort(__IO uint32_t*);
     void on();
     void off();
     void toggle();
     void breath();
     void blink();
     void rapid();
+	void three();
     void scheduler();
-
-    uint16_t getLevel() { return breath_percent; }
+    void setDimmer(uint16_t dimmer);
 
    private:
     // State Machine Definition
-    enum class State { ON, OFF, BREATH, BLINK, RAPID };
+    enum class State { ON, OFF, BREATH, BLINK, RAPID, THREE };
     enum class Event { ON, OFF, TOGGLE, BREATH, BLINK, RAPID, SCHEDULE };
-
     void actionOn();
     void actionOff();
     void actionToggle();
     void actionBreath();
     void actionBlink();
     void actionRapid();
-
     bool guardBlink();
     bool guardRapid();
+    bool guardThree();
 
    private:
     // State Machine Mechanism
     // Transition definition: (CurrentState, Event, NextState, GuardFunction, ActionFunction)
+    // StateEntry definition: (TargetState, GuardFunction, ActionFunction)
     using GuardFunc = std::function<bool()>;
     using ActionFunc = std::function<void()>;
-    using Transition = std::tuple<State, Event, State, GuardFunc, ActionFunc>;
     using Entry = std::tuple<State, GuardFunc, ActionFunc>;
+    using Transition = std::tuple<State, Event, State, GuardFunc, ActionFunc>;
 
     State currentState;
-    std::vector<Transition> transitions;
     std::vector<Entry> entries;
+    std::vector<Transition> transitions;
 
     void triggerEvent(Event event) {
         // Find a valid transition for the current state and event
@@ -86,20 +87,20 @@ class LED {
     }
 
    private:
-    __IO uint32_t* port;  // Ex: htim3.Instance->CCR2 for Timer3 Channel2
-    int32_t ratio{1};
-    int32_t scale{1};       // light scale
+    __IO uint32_t* port;    // Ex: htim3.Instance->CCR2 for Timer3 Channel2
+    uint16_t ratio{1};      // Max CCR value ratio to 100%
     uint16_t frequency{0};  // thread scheduler frequency
+    uint16_t dimmer{1};     // User custom dimmer value 0 - 10
 
-    int16_t on_percent{100};
     bool breath_direction{true};
-    int16_t breath_percent{0};
+    uint16_t on_percent{100};
+    uint16_t breath_percent{0};
     uint16_t blink_timer{0};
     uint16_t rapid_timer{0};
-
-    // std::unordered_map<State, std::unordered_map<Event, State>> transitions;
-    // std::unordered_map<State, std::function<void()>> actions;
-    // std::unordered_map<State, std::unordered_map<Event, std::function<bool()>>> guards;
+    uint16_t three_timer_on{0};
+    uint16_t three_timer_off{0};
+	uint16_t three_counter{0};
+    uint16_t three_count{3};
 
 };  // class LED
 

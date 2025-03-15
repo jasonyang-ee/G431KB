@@ -70,7 +70,9 @@ void CLI::func_led(int32_t argc, char** argv) {
             led_user.rapid();
         } else if (arg == "breath") {
             led_user.breath();
-        }
+        } else if (arg == "three") {
+			led_user.three();
+		}
     }
 }
 
