@@ -25,23 +25,44 @@ class LED {
     void breath();
     void blink();
     void rapid();
-	void scheduler();
+    void scheduler();
 
-	uint16_t getLevel() { return breath_percent; }
+    uint16_t getLevel() { return breath_percent; }
 
    private:
-    enum class State { ON, OFF, IDLE, BREATH, BLINK, RAPID };
-    State state_steady{State::OFF};
-    State state_dynamic{State::BREATH};
+    enum class State { ON, OFF, BREATH, BLINK, RAPID };
+    enum class Event { ON, OFF, TOGGLE, BREATH, BLINK, RAPID, SCHEDULE };
+
     void actionOn();
     void actionOff();
+	void actionToggle();
     void actionBreath();
     void actionBlink();
     void actionRapid();
 
-    void setSteadyState(State newState, void (LED::*f)());
-    void setDynamicState(State newState);
-    void setDynamicState(State newState, void (LED::*f)());
+	bool guardBlink();
+	bool guardRapid();
+
+    void triggerEvent(Event event) {
+        if (transitions[currentState].count(event)) {
+            State nextState = transitions[currentState][event];
+
+            // Check if a guard function exists for this transition
+            if (guards[currentState].count(event)) {
+                if (!guards[currentState][event]()) {
+                    return;
+                }
+            }
+
+            currentState = nextState;  // Move to next state
+            actions[currentState]();   // Execute state action
+		}
+	}
+
+    void setState(State state) {
+        currentState = state;
+        actions[currentState]();  // Execute state action
+    }
 
    private:
     __IO uint32_t* port;  // Ex: htim3.Instance->CCR2 for Timer3 Channel2
@@ -55,8 +76,10 @@ class LED {
     uint16_t blink_timer{0};
     uint16_t rapid_timer{0};
 
-    std::unordered_map<State, std::function<void()>> steadyState;
-    std::unordered_map<State, std::function<void()>> dynamicState;
+    State currentState{State::BREATH};
+    std::unordered_map<State, std::unordered_map<Event, State>> transitions;
+    std::unordered_map<State, std::function<void()>> actions;
+	std::unordered_map<State, std::unordered_map<Event, std::function<bool()>>> guards;
 
 };  // class LED
 
