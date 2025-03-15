@@ -3,7 +3,6 @@ on:
   push:
     branches:
       - "*"
-      - "!main"
     paths-ignore:
       - '**.md'
   pull_request:
@@ -38,7 +37,7 @@ jobs:
               xz-utils curl
 
       - name: Checkout Files
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Build Init
         run: cmake -DCMAKE_BUILD_TYPE=Release "-B $GITHUB_WORKSPACE/build" -G Ninja
@@ -53,7 +52,7 @@ jobs:
     container:
       image: "ghcr.io/jasonyang-ee/stm32-builder:alpine-latest"
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: BUILD
         run: build.sh
 
@@ -64,7 +63,7 @@ jobs:
     container:
       image: "ghcr.io/jasonyang-ee/stm32-builder:arch-latest"
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: BUILD
         run: build.sh
 
@@ -75,18 +74,18 @@ jobs:
     container:
       image: "ghcr.io/jasonyang-ee/stm32-builder:ubuntu-latest"
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: BUILD
         run: build.sh
 
       - name: Upload Binary .elf
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: BINARY.elf
           path: ${{ github.workspace }}/build/*.elf
 
       - name: Upload Binary .bin
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: BINARY.bin
           path: ${{ github.workspace }}/build/*.bin
