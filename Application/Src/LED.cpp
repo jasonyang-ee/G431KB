@@ -1,23 +1,34 @@
 #include "LED.hpp"
 
 LED::LED(int32_t period, int32_t freq) : ratio(period / 100), frequency(freq) {
-    // Event Handlers
-    transitions[State::OFF] = {{Event::TOGGLE, State::ON}};
-    transitions[State::ON] = {{Event::TOGGLE, State::OFF}};
-    transitions[State::BREATH] = {{Event::SCHEDULE, State::BREATH}, {Event::TOGGLE, State::OFF}};
-    transitions[State::BLINK] = {{Event::SCHEDULE, State::BLINK}, {Event::TOGGLE, State::OFF}};
-    transitions[State::RAPID] = {{Event::SCHEDULE, State::RAPID}, {Event::TOGGLE, State::OFF}};
+    // clang-format off
+    transitions = {
+        {State::OFF, Event::TOGGLE, State::ON, nullptr, [this]() { actionOn(); }},
+        {State::ON, Event::TOGGLE, State::OFF, nullptr, [this]() { actionOff(); }},
+        {State::BREATH, Event::SCHEDULE, State::BREATH, nullptr, [this]() { actionBreath(); }},
+        {State::BLINK, Event::SCHEDULE, State::BLINK, [this] { return guardBlink(); }, [this]() { actionToggle(); }},
+        {State::RAPID, Event::SCHEDULE, State::RAPID, [this] { return guardRapid(); }, [this]() { actionToggle(); }},
+        {State::BREATH, Event::TOGGLE, State::OFF, nullptr, [this]() { actionOff(); }},
+        {State::BLINK, Event::TOGGLE, State::OFF, nullptr, [this]() { actionOff(); }},
+        {State::RAPID, Event::TOGGLE, State::OFF, nullptr, [this]() { actionOff(); }}
+	};
+    entries = {
+		{State::ON, nullptr, [this]() { actionOn(); }},
+		{State::OFF, nullptr, [this]() { actionOff(); }},
+		{State::BREATH, nullptr, [this]() { actionBreath(); }},
+		{State::BLINK, nullptr, [this]() { actionToggle(); }},
+		{State::RAPID, nullptr, [this]() { actionToggle(); }}
+	};
+    // clang-format on
 
-    // Action When Entering State
-    actions[State::ON] = [this]() { actionOn(); };
-    actions[State::OFF] = [this]() { actionOff(); };
-    actions[State::BREATH] = [this]() { actionBreath(); };
-    actions[State::BLINK] = [this]() { actionToggle(); };
-    actions[State::RAPID] = [this]() { actionToggle(); };
-
-	// Guard Before Transition
-    guards[State::BLINK] = {{Event::SCHEDULE, [this]() { return guardBlink(); }}};
-    guards[State::RAPID] = {{Event::SCHEDULE, [this]() { return guardRapid(); }}};
+    // Set initial state
+    currentState = State::BREATH;
+    for (auto entry : entries) {
+        if (std::get<0>(entry) == currentState) {
+            std::get<2>(entry)();
+            break;
+        }
+    }
 }
 
 LED::~LED() {}
@@ -26,11 +37,11 @@ LED::~LED() {}
 void LED::setPort(__IO uint32_t *CCR) { port = CCR; }
 void LED::on() { setState(State::ON); }
 void LED::off() { setState(State::OFF); }
-void LED::toggle() { triggerEvent(Event::TOGGLE); }
-void LED::scheduler() { triggerEvent(Event::SCHEDULE); }
 void LED::breath() { setState(State::BREATH); }
 void LED::blink() { setState(State::BLINK); }
 void LED::rapid() { setState(State::RAPID); }
+void LED::toggle() { triggerEvent(Event::TOGGLE); }
+void LED::scheduler() { triggerEvent(Event::SCHEDULE); }
 
 // Define Actions
 void LED::actionOn() { *port = on_percent / scale * ratio; }

@@ -30,38 +30,59 @@ class LED {
     uint16_t getLevel() { return breath_percent; }
 
    private:
+    // State Machine Definition
     enum class State { ON, OFF, BREATH, BLINK, RAPID };
     enum class Event { ON, OFF, TOGGLE, BREATH, BLINK, RAPID, SCHEDULE };
 
     void actionOn();
     void actionOff();
-	void actionToggle();
+    void actionToggle();
     void actionBreath();
     void actionBlink();
     void actionRapid();
 
-	bool guardBlink();
-	bool guardRapid();
+    bool guardBlink();
+    bool guardRapid();
+
+   private:
+    // State Machine Mechanism
+    // Transition definition: (CurrentState, Event, NextState, GuardFunction, ActionFunction)
+    using GuardFunc = std::function<bool()>;
+    using ActionFunc = std::function<void()>;
+    using Transition = std::tuple<State, Event, State, GuardFunc, ActionFunc>;
+    using Entry = std::tuple<State, GuardFunc, ActionFunc>;
+
+    State currentState;
+    std::vector<Transition> transitions;
+    std::vector<Entry> entries;
 
     void triggerEvent(Event event) {
-        if (transitions[currentState].count(event)) {
-            State nextState = transitions[currentState][event];
+        // Find a valid transition for the current state and event
+        auto it = std::find_if(transitions.begin(), transitions.end(), [&](const Transition& t) {
+            return std::get<0>(t) == currentState && std::get<1>(t) == event;
+        });
 
-            // Check if a guard function exists for this transition
-            if (guards[currentState].count(event)) {
-                if (!guards[currentState][event]()) {
-                    return;
-                }
+        if (it != transitions.end()) {
+            GuardFunc guard = std::get<3>(*it);
+            ActionFunc action = std::get<4>(*it);
+            State nextState = std::get<2>(*it);
+
+            // Check guard condition if it exists
+            if (!guard || guard()) {
+                currentState = nextState;
+                if (action) action();
             }
-
-            currentState = nextState;  // Move to next state
-            actions[currentState]();   // Execute state action
-		}
-	}
+        }
+    }
 
     void setState(State state) {
         currentState = state;
-        actions[currentState]();  // Execute state action
+        for (auto entry : entries) {
+            if (std::get<0>(entry) == currentState) {
+                std::get<2>(entry)();
+                break;
+            }
+        }
     }
 
    private:
@@ -76,10 +97,9 @@ class LED {
     uint16_t blink_timer{0};
     uint16_t rapid_timer{0};
 
-    State currentState{State::BREATH};
-    std::unordered_map<State, std::unordered_map<Event, State>> transitions;
-    std::unordered_map<State, std::function<void()>> actions;
-	std::unordered_map<State, std::unordered_map<Event, std::function<bool()>>> guards;
+    // std::unordered_map<State, std::unordered_map<Event, State>> transitions;
+    // std::unordered_map<State, std::function<void()>> actions;
+    // std::unordered_map<State, std::unordered_map<Event, std::function<bool()>>> guards;
 
 };  // class LED
 
