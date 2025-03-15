@@ -37,7 +37,7 @@ int main(void) {
     MX_RTC_Init();
 
     // Instances Dependency Injection
-    serialCOM.setPort(&huart2);
+	serialCOM.setPort(std::vector<UART_HandleTypeDef *>{&huart2});
     led_user.setPort(&htim8.Instance->CCR2);
     dac.setPort(&hdac1, DAC_CHANNEL_2);
 	rtc.setPort(&hrtc);
@@ -49,7 +49,7 @@ int main(void) {
     serialCOM.sendString("PWM output Start\n");
 
     // Serial Communication Start
-    HAL_UARTEx_ReceiveToIdle_IT(&huart2, serialCOM.m_rx_data, UART_BUFFER);
+    HAL_UARTEx_ReceiveToIdle_IT(&huart2, serialCOM.rx.data(), UART_BUFFER);
     serialCOM.sendString("Serial communication Start\n");
 
     // ADC Calibration and Start
@@ -72,11 +72,13 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
 
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
     if (huart->Instance == USART2) {
-        // Start the DMA again before jumping thread
-        HAL_UARTEx_ReceiveToIdle_IT(&huart2, serialCOM.m_rx_data, UART_BUFFER);
-
-        // Parse Command
-        cli.setSize(Size);
+		// Save rx data to cli cache
+        cli.saveCache(std::string(reinterpret_cast<char*>(serialCOM.rx.data()), Size));
+		
+        // Restart DMA before exiting callback interrupt
+        HAL_UARTEx_ReceiveToIdle_IT(&huart2, serialCOM.rx.data(), serialCOM.UART_BUFFER_SIZE);
+		
+        // Parse command with thread
         vTaskNotifyGiveFromISR(thread.parse_handle, NULL);
     }
 }

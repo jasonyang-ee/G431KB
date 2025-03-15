@@ -81,7 +81,6 @@ void CustomDAC::setState(CustomDAC::State cmd) {
 			zeroLevel();
             break;
         case CustomDAC::State::s_sine:
-			generateSineWave();
             break;
     }
     m_state = cmd;

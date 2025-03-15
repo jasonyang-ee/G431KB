@@ -66,7 +66,6 @@ void Thread::telemetry_human() {
 
 void Thread::idle() {
     while (1) {
-        serialCOM.sendString("idling\n");
         dac.setLevel(0);
         dac.off();
         main_sm.process_event(finish{});
@@ -90,7 +89,6 @@ void Thread::dacUpdate() {
 void Thread::init() {
     while (1) {
         serialCOM.sendString("RTOS Init\n");
-        cli.init();
         dac.init();
         flash.Load();
 
@@ -110,14 +108,18 @@ void Thread::schedule_20Hz() {
 void Thread::serial_send() {
     while (1) {
         ulTaskNotifyTake(pdTRUE, 300);
-        serialCOM.sendOut();
+        serialCOM.commit();
     }
 }
 
 void Thread::parse() {
     while (1) {
         ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-        cli.parse();
+        if (cli.parse()) {
+			serialCOM.sendString("Command parsed\n");
+		} else {
+			serialCOM.sendString("Command not found\n");
+		}
     }
 }
 
