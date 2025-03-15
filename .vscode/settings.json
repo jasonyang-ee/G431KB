@@ -2,6 +2,7 @@
 	"C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
 	"files.associations": {
 		"*.cpp": "cpp",
+		"*.qml": "qml",
 		"array": "cpp",
 		"atomic": "cpp",
 		"bit": "cpp",
@@ -43,6 +44,9 @@
 		"ostream": "cpp",
 		"stdexcept": "cpp",
 		"streambuf": "cpp",
-		"typeinfo": "cpp"
+		"typeinfo": "cpp",
+		"optional": "cpp",
+		"iostream": "cpp",
+		"istream": "cpp"
 	}
 }

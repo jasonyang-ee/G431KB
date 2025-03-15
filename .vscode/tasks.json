@@ -9,7 +9,7 @@
 				"--connect",
 				"port=swd",
 				"--download",
-				"${command:cmake.launchTargetPath}",
+				"'${command:cmake.launchTargetPath}'",
 				"-rst",
 				"-run"
 			],

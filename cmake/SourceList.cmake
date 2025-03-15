@@ -8,7 +8,6 @@ ${PROJ_PATH}/Application/Src/GPIO.cpp
 ${PROJ_PATH}/Application/Src/LED.cpp
 ${PROJ_PATH}/Application/Src/main.cpp
 ${PROJ_PATH}/Application/Src/RTC.cpp
-${PROJ_PATH}/Application/Src/SerialCOM.cpp
 ${PROJ_PATH}/Application/Src/Thread.cpp
 ${PROJ_PATH}/Core/Src/adc.c
 ${PROJ_PATH}/Core/Src/dac.c
